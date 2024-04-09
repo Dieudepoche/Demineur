@@ -30,16 +30,17 @@ fun generateGrid(bombCount: Int): List<List<Case>> {
     val bombCoordinates = mutableSetOf<Pair<Int, Int>>().map {
 
         listOf(
-            (it.first-1, it.second-1)
-            (it.first, it.second-1)
-            (it.first+1, it.second-1)
-            (it.first-1, it.second)
-            (it.first+1, it.second)
-            (it.first-1, it.second+1)
-            (it.first, it.second+1)
-            (it.first+1, it.second+1)
+            Pair(it.first - 1, it.second - 1),
+            Pair(it.first, it.second - 1),
+            Pair(it.first + 1, it.second - 1),
+            Pair(it.first - 1, it.second),
+            Pair(it.first + 1, it.second),
+            Pair(it.first - 1, it.second + 1),
+            Pair(it.first, it.second + 1),
+            Pair(it.first + 1, it.second + 1)
 
         )
+        
     }
 
     val casesCoordinates = (1..GRID_SIZE).map { i ->
