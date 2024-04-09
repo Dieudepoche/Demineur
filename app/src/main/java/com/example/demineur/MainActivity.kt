@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             DemineurTheme {
-                Grille(modifier = Modifier)
+                Grille()
             }
         }
     }
