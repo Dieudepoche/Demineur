@@ -27,10 +27,22 @@ private const val GRID_SIZE = 9
 private const val BOMB_COUNT = 10
 
 fun generateGrid(bombCount: Int): List<List<Case>> {
-    val bombCoordinates = (1..bombCount).map {
-        (1..GRID_SIZE).random() to (1..GRID_SIZE).random()
+    val bombCoordinates = mutableSetOf<Pair<Int, Int>>().map {
+
+        listOf(
+            (it.first-1, it.second-1)
+            (it.first, it.second-1)
+            (it.first+1, it.second-1)
+            (it.first-1, it.second)
+            (it.first+1, it.second)
+            (it.first-1, it.second+1)
+            (it.first, it.second+1)
+            (it.first+1, it.second+1)
+
+        )
     }
-    return (1..GRID_SIZE).map { i ->
+
+    val casesCoordinates = (1..GRID_SIZE).map { i ->
         (1..GRID_SIZE).map { j ->
             Case(
                 bomb = (i to j) in bombCoordinates,
@@ -39,6 +51,7 @@ fun generateGrid(bombCount: Int): List<List<Case>> {
             )
         }
     }
+
 }
 
 
@@ -73,6 +86,7 @@ fun Cell(
     modifier: Modifier = Modifier,
     case: Case,
     onClick: () -> Unit
+
 ) {
     Box(
         modifier
