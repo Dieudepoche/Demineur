@@ -27,32 +27,38 @@ private const val GRID_SIZE = 9
 private const val BOMB_COUNT = 10
 
 fun generateGrid(bombCount: Int): List<List<Case>> {
-    val bombCoordinates = mutableSetOf<Pair<Int, Int>>().map {
+    val bombCoordinates = mutableSetOf<Pair<Int, Int>>()
 
-        listOf(
-            Pair(it.first - 1, it.second - 1),
-            Pair(it.first, it.second - 1),
-            Pair(it.first + 1, it.second - 1),
-            Pair(it.first - 1, it.second),
-            Pair(it.first + 1, it.second),
-            Pair(it.first - 1, it.second + 1),
-            Pair(it.first, it.second + 1),
-            Pair(it.first + 1, it.second + 1)
+    val bombCountMap = mutableMapOf<Pair<Int, Int>, Int> ()
 
-        )
-        
+    val x : Int? = 4
+
+    val y : Int = x ?: 0
+
+    while (bombCoordinates.size < BOMB_COUNT) {
+        val coordonnees = (1..GRID_SIZE).random() to (1..GRID_SIZE).random()
+        bombCoordinates.add(coordonnees)
+        if (coordonnees in bombCountMap)
+        Pair(coordonnees.first - 1, coordonnees.second - 1)
+        Pair(coordonnees.first, coordonnees.second - 1)
+        Pair(coordonnees.first + 1, coordonnees.second - 1)
+        Pair(coordonnees.first - 1, coordonnees.second)
+        Pair(coordonnees.first + 1, coordonnees.second)
+        Pair(coordonnees.first - 1, coordonnees.second + 1)
+        Pair(coordonnees.first, coordonnees.second + 1)
+        Pair(coordonnees.first + 1, coordonnees.second + 1)
     }
 
     val casesCoordinates = (1..GRID_SIZE).map { i ->
         (1..GRID_SIZE).map { j ->
             Case(
                 bomb = (i to j) in bombCoordinates,
-                adjacentBombs = 0,
+                adjacentBombs = bombCountMap[i to j] ?:0,
                 selected = false
             )
         }
     }
-
+    return casesCoordinates
 }
 
 
