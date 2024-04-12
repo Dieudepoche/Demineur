@@ -102,7 +102,6 @@ fun Grille(modifier: Modifier = Modifier) {
 
 @Composable
 fun Cell(
-
     modifier: Modifier = Modifier,
     case: Case,
     onClick: () -> Unit
