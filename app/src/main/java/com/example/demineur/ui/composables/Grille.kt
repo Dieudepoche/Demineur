@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,113 +21,132 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.example.demineur.R
 import com.example.demineur.modeles.Case
 
 private const val GRID_SIZE = 9
 private const val BOMB_COUNT = 10
+private var active = mutableStateOf(false)
 
 fun generateGrid(bombCount: Int): List<List<Case>> {
+
+
     val bombCoordinates = mutableSetOf<Pair<Int, Int>>()
 
     val bombCountMap = mutableMapOf<Pair<Int, Int>, Int>()
 
-    while (bombCoordinates.size < BOMB_COUNT) {
+    if (active.value) {
 
-        val coordonnees = (1..GRID_SIZE).random() to (1..GRID_SIZE).random()
+        while (bombCoordinates.size < BOMB_COUNT) {
 
-        val resultat = bombCoordinates.add(coordonnees)
+            val coordonnees = (1..GRID_SIZE).random() to (1..GRID_SIZE).random()
 
-        if (resultat) {
+            val resultat = bombCoordinates.add(coordonnees)
 
-            val i = coordonnees.first
-            val j = coordonnees.second
-            val adjacentCoordinates = listOf(
-                (i - 1) to (j - 1),
-                i to (j - 1),
-                (i + 1) to (j - 1),
-                (i - 1) to j,
-                (i + 1) to j,
-                (i - 1) to (j + 1),
-                i to (j + 1),
-                (i + 1) to (j + 1),
-            )
+            if (resultat) {
 
-            adjacentCoordinates.forEach { element ->
-                bombCountMap[element] = (bombCountMap[element] ?: 0) + 1
+                val i = coordonnees.first
+                val j = coordonnees.second
+                val adjacentCoordinates = listOf(
+                    (i - 1) to (j - 1),
+                    i to (j - 1),
+                    (i + 1) to (j - 1),
+                    (i - 1) to j,
+                    (i + 1) to j,
+                    (i - 1) to (j + 1),
+                    i to (j + 1),
+                    (i + 1) to (j + 1),
+                )
+
+                adjacentCoordinates.forEach { element ->
+                    bombCountMap[element] = (bombCountMap[element] ?: 0) + 1
+                }
             }
         }
-    }
 
-
-    val casesCoordinates = (1..GRID_SIZE).map { i ->
-        (1..GRID_SIZE).map { j ->
-            Case(
-                bomb = (i to j) in bombCoordinates,
-                adjacentBombs = bombCountMap[i to j] ?: 0,
-                selected = false
-            )
+        val casesCoordinates = (1..GRID_SIZE).map { i ->
+            (1..GRID_SIZE).map { j ->
+                Case(
+                    bomb = (i to j) in bombCoordinates,
+                    adjacentBombs = bombCountMap[i to j] ?: 0,
+                    selected = false
+                )
+            }
         }
+        return casesCoordinates
+
     }
-    return casesCoordinates
-
-
+    return emptyList()
 }
 
 
-@Composable
-fun Grille(modifier: Modifier = Modifier) {
-    val cases by remember {
-        mutableStateOf(generateGrid(bombCount = BOMB_COUNT).flatten())
-    }
+    @Composable
+    fun Grille(modifier: Modifier = Modifier) {
+        val cases by remember {
+            mutableStateOf(generateGrid(bombCount = BOMB_COUNT).flatten())
+        }
 
-    Surface(
-        modifier
-            .fillMaxWidth()
-            .fillMaxHeight(0.7f)
-    ) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(GRID_SIZE)
+        Surface(
+            modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.7f)
         ) {
-            items(cases) {
-                var clicked by remember {
-                    mutableStateOf(false)
-                }
-                Cell(Modifier.aspectRatio(1f), case = it.copy(selected = clicked)) {
-                    clicked = true
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(GRID_SIZE)
+            ) {
+                items(cases) {
+                    var clicked by remember {
+                        mutableStateOf(false)
+                    }
+                    Cell(Modifier.aspectRatio(1f), case = it.copy(selected = clicked)) {
+                        clicked = true
+                        active.value = true
+                        generateGrid(BOMB_COUNT)
+
+                    }
                 }
             }
         }
     }
-}
 
-@Composable
-fun Cell(
+    @Composable
+    fun Cell(
+        modifier: Modifier = Modifier,
+        case: Case,
+        onClick: () -> Unit
 
-    modifier: Modifier = Modifier,
-    case: Case,
-    onClick: () -> Unit
-
-) {
-    Box(
-        modifier
-            .border(1.dp, Color.Black)
-            .clickable {
-                onClick()
-            }
-            .background(
-                if (case.selected && case.bomb) {
-                    Color.Red
-                } else if (case.selected) {
-                    Color.Transparent
-                } else {
-                    Color.LightGray
-                }
-            ),
-        contentAlignment = Alignment.Center
     ) {
-        if (case.selected) {
-            Text(text = case.adjacentBombs.toString())
+        Box(
+            modifier
+                .border(1.dp, Color.Black)
+                .clickable {
+                    onClick()
+
+                }
+                .background(
+                    if (case.selected) {
+                        if (case.bomb) {
+                            Color.Red
+                        } else {
+                            Color.LightGray
+                        }
+                    } else {
+                        Color.Transparent
+                    }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (case.selected) {
+                if (case.bomb) {
+                    Icon(painter = painterResource(id = R.drawable.bomb), contentDescription = null)
+                } else {
+                    if (case.adjacentBombs > 0) {
+                        Text(text = case.adjacentBombs.toString())
+                    }
+                }
+            }
+
         }
     }
-}
