@@ -1,5 +1,6 @@
 package com.example.demineur.ui.composables
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,7 +29,7 @@ import com.example.demineur.modeles.Case
 
 private const val GRID_SIZE = 9
 private const val BOMB_COUNT = 10
-private var active = mutableStateOf(false)
+private var firstclick =false
 
 fun generateGrid(bombCount: Int): List<List<Case>> {
 
@@ -37,7 +38,6 @@ fun generateGrid(bombCount: Int): List<List<Case>> {
 
     val bombCountMap = mutableMapOf<Pair<Int, Int>, Int>()
 
-    if (active.value) {
 
         while (bombCoordinates.size < BOMB_COUNT) {
 
@@ -71,21 +71,36 @@ fun generateGrid(bombCount: Int): List<List<Case>> {
                 Case(
                     bomb = (i to j) in bombCoordinates,
                     adjacentBombs = bombCountMap[i to j] ?: 0,
-                    selected = false
+                    selected = false,
+                    coordonnees = i to j
                 )
             }
         }
         return casesCoordinates
 
+}
+
+fun generateDefaultGrid(bombCount: Int): List<List<Case>> {
+
+    val casesCoordinates = (1..GRID_SIZE).map { i ->
+        (1..GRID_SIZE).map { j ->
+            Case(
+                bomb = false,
+                adjacentBombs = 0,
+                selected = false,
+                coordonnees = i to j
+            )
+        }
     }
-    return emptyList()
+    return casesCoordinates
+
 }
 
 
     @Composable
     fun Grille(modifier: Modifier = Modifier) {
         val cases by remember {
-            mutableStateOf(generateGrid(bombCount = BOMB_COUNT).flatten())
+            mutableStateOf(generateDefaultGrid(bombCount = BOMB_COUNT).flatten())
         }
 
         Surface(
@@ -97,15 +112,7 @@ fun generateGrid(bombCount: Int): List<List<Case>> {
                 columns = GridCells.Fixed(GRID_SIZE)
             ) {
                 items(cases) {
-                    var clicked by remember {
-                        mutableStateOf(false)
-                    }
-                    Cell(Modifier.aspectRatio(1f), case = it.copy(selected = clicked)) {
-                        clicked = true
-                        active.value = true
-                        generateGrid(BOMB_COUNT)
-
-                    }
+                    Cell(Modifier.aspectRatio(1f), case = it){}
                 }
             }
         }
@@ -115,14 +122,14 @@ fun generateGrid(bombCount: Int): List<List<Case>> {
     fun Cell(
         modifier: Modifier = Modifier,
         case: Case,
-        onClick: () -> Unit
+        onClick: (Pair<Int,Int>) -> Unit
 
     ) {
         Box(
             modifier
                 .border(1.dp, Color.Black)
                 .clickable {
-                    onClick()
+                    onClick(case.coordonnees)
 
                 }
                 .background(
