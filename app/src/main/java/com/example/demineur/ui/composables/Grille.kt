@@ -1,6 +1,5 @@
 package com.example.demineur.ui.composables
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -26,47 +24,50 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.demineur.R
 import com.example.demineur.modeles.Case
+import com.example.demineur.modeles.Grille
 
 private const val GRID_SIZE = 9
 private const val BOMB_COUNT = 10
-private var firstclick =false
+private var firstclick = false
 
-fun generateGrid(bombCount: Int): List<List<Case>> {
 
+fun generateGrid() : Grille {
 
     val bombCoordinates = mutableSetOf<Pair<Int, Int>>()
 
     val bombCountMap = mutableMapOf<Pair<Int, Int>, Int>()
 
 
-        while (bombCoordinates.size < BOMB_COUNT) {
+    while (bombCoordinates.size < BOMB_COUNT) {
 
-            val coordonnees = (1..GRID_SIZE).random() to (1..GRID_SIZE).random()
 
-            val resultat = bombCoordinates.add(coordonnees)
+        val coordonnees = (1..GRID_SIZE).random() to (1..GRID_SIZE).random()
 
-            if (resultat) {
+        val resultat = bombCoordinates.add(coordonnees)
 
-                val i = coordonnees.first
-                val j = coordonnees.second
-                val adjacentCoordinates = listOf(
-                    (i - 1) to (j - 1),
-                    i to (j - 1),
-                    (i + 1) to (j - 1),
-                    (i - 1) to j,
-                    (i + 1) to j,
-                    (i - 1) to (j + 1),
-                    i to (j + 1),
-                    (i + 1) to (j + 1),
-                )
+        if (resultat) {
 
-                adjacentCoordinates.forEach { element ->
-                    bombCountMap[element] = (bombCountMap[element] ?: 0) + 1
-                }
+            val i = coordonnees.first
+            val j = coordonnees.second
+            val adjacentCoordinates = listOf(
+                (i - 1) to (j - 1),
+                i to (j - 1),
+                (i + 1) to (j - 1),
+                (i - 1) to j,
+                (i + 1) to j,
+                (i - 1) to (j + 1),
+                i to (j + 1),
+                (i + 1) to (j + 1),
+            )
+
+            adjacentCoordinates.forEach { element ->
+                bombCountMap[element] = (bombCountMap[element] ?: 0) + 1
             }
         }
+    }
 
-        val casesCoordinates = (1..GRID_SIZE).map { i ->
+    return Grille(
+        cells = (1..GRID_SIZE).flatMap { i ->
             (1..GRID_SIZE).map { j ->
                 Case(
                     bomb = (i to j) in bombCoordinates,
@@ -75,33 +76,33 @@ fun generateGrid(bombCount: Int): List<List<Case>> {
                     coordonnees = i to j
                 )
             }
-        }
-        return casesCoordinates
-
+        },
+        generated = true
+    )
 }
 
-fun generateDefaultGrid(bombCount: Int): List<List<Case>> {
 
-    val casesCoordinates = (1..GRID_SIZE).map { i ->
-        (1..GRID_SIZE).map { j ->
-            Case(
-                bomb = false,
-                adjacentBombs = 0,
-                selected = false,
-                coordonnees = i to j
-            )
-        }
-    }
-    return casesCoordinates
 
-}
+    fun generateDefaultGrid() = Grille(
+
+        cells = (1..GRID_SIZE).flatMap { i ->
+            (1..GRID_SIZE).map { j ->
+                Case(
+                    bomb = false,
+                    adjacentBombs = 0,
+                    selected = false,
+                    coordonnees = i to j
+                )
+            }
+        },
+        generated = false
+
+    )
 
 
     @Composable
     fun Grille(modifier: Modifier = Modifier) {
-        val cases by remember {
-            mutableStateOf(generateDefaultGrid(bombCount = BOMB_COUNT).flatten())
-        }
+        val cases by generateDefaultGrid().flatten()
 
         Surface(
             modifier
@@ -122,7 +123,7 @@ fun generateDefaultGrid(bombCount: Int): List<List<Case>> {
     fun Cell(
         modifier: Modifier = Modifier,
         case: Case,
-        onClick: (Pair<Int,Int>) -> Unit
+        onClick: (Pair<Int, Int>) -> Unit
 
     ) {
         Box(
