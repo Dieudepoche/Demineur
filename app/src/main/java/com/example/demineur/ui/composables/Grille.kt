@@ -1,5 +1,10 @@
 package com.geotec.geologger.presentation.ui.composables
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,10 +15,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.demineur.R
@@ -29,8 +37,8 @@ import com.example.demineur.modeles.Case
 import com.example.demineur.modeles.Grille
 import kotlinx.coroutines.launch
 
-private const val GRID_SIZE = 9
-private const val BOMB_COUNT = 6
+private const val GRID_SIZE = 12
+private const val BOMB_COUNT = 15
 
 
 fun generateBaseGrid(firstClickCoordinates: Pair<Int, Int>): Grille {
@@ -115,6 +123,7 @@ fun GrilleUI(modifier: Modifier = Modifier) {
                 }
             }
         }
+        
 
     }
 }
@@ -126,6 +135,17 @@ fun Cell(
     onClick: (Pair<Int, Int>) -> Unit
 
 ) {
+//    val test by animateColorAsState(targetValue = Color.Red, animationSpec = tween(durationMillis = 1000))
+    var color by remember { mutableStateOf(Color.LightGray) }
+
+    LaunchedEffect(Unit) {
+        val x = rememberInfiniteTransition()
+        val colorAnimation = animateColorAsState(
+            targetValue = Color.Red,
+            animationSpec = tween(durationMillis = 3000)
+        )
+        color = colorAnimation.value
+    }
     Box(
         modifier
             .border(1.dp, Color.Black)
@@ -136,12 +156,12 @@ fun Cell(
             .background(
                 if (case.selected) {
                     if (case.bomb) {
-                        Color.Red
+                        test
                     } else {
-                        Color.LightGray
+                        Color.Blue
                     }
                 } else {
-                    Color.Transparent
+                    Color.LightGray
                 }
             ),
         contentAlignment = Alignment.Center
