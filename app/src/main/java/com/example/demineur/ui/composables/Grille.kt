@@ -1,4 +1,4 @@
-package com.example.demineur.ui.composables
+package com.geotec.geologger.presentation.ui.composables
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,10 +14,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.example.demineur.R
 import com.example.demineur.modeles.Case
 import com.example.demineur.modeles.Grille
+import kotlinx.coroutines.launch
 
 private const val GRID_SIZE = 9
 private const val BOMB_COUNT = 6
@@ -93,6 +94,7 @@ fun GrilleUI(modifier: Modifier = Modifier) {
     var grid by remember {
         mutableStateOf(generateEmptyGrid())
     }
+    val coroutineScope = rememberCoroutineScope()
 
     Surface(
         modifier
@@ -107,8 +109,9 @@ fun GrilleUI(modifier: Modifier = Modifier) {
                     if (!grid.generated) {
                         grid = generateBaseGrid(it)
                     }
-
-                    grid = grid.onCellSelected(it)
+                    coroutineScope.launch {
+                        grid = grid.onCellSelected(it)
+                    }
                 }
             }
         }
@@ -156,26 +159,34 @@ fun Cell(
     }
 }
 
-private fun Pair<Int, Int>.adjacents(self: Boolean) = listOfNotNull(
-    (first - 1) to (second - 1),
-    first to (second - 1),
-    (first + 1) to (second - 1),
-    (first - 1) to second,
-    if (self) first to second else null,
-    (first + 1) to second,
-    (first - 1) to (second + 1),
-    first to (second + 1),
-    (first + 1) to (second + 1),
-)
+private fun Pair<Int, Int>.adjacents(self: Boolean): List<Pair<Int, Int>> {
+    val (i, j) = first to second
+    return listOfNotNull(
+        (i - 1) to (j - 1),
+        i to (j - 1),
+        (i + 1) to (j - 1),
+        (i - 1) to j,
+        if (self) i to j else null,
+        (i + 1) to j,
+        (i - 1) to (j + 1),
+        i to (j + 1),
+        (i + 1) to (j + 1),
+    )
+}
 
-private fun Grille.onCellSelected(clickCoordinates: Pair<Int, Int>): Grille {
+private fun Grille.adjacents(case: Case, self: Boolean): List<Case> {
+    val adjacents = case.coordonnees.adjacents(self)
+    return cells.filter { it.coordonnees in adjacents }
+}
+
+private suspend fun Grille.onCellSelected(clickCoordinates: Pair<Int, Int>): Grille {
     val cell = this.cells.first { it.coordonnees == clickCoordinates }
     return if (cell.adjacentBombs == 0) {
-        val selectedCells = finAdjacentSelectedCells(cell, emptyList())
+        val selectedCells = findRecursiveAdjacentCells(cell, mutableListOf())
         val newCells = cells.toMutableList().apply {
             selectedCells.forEach {
                 val cellIndex = cells.indexOf(it)
-                set(cellIndex, cell.copy(selected = true))
+                set(cellIndex, it.copy(selected = true))
             }
         }
         this.copy(cells = newCells)
@@ -187,12 +198,17 @@ private fun Grille.onCellSelected(clickCoordinates: Pair<Int, Int>): Grille {
     }
 }
 
-private fun Grille.finAdjacentSelectedCells(cell: Case, alreadySelected : List<Case>): List<Case> {
-    val mutableSelected = alreadySelected.toMutableList()
-    val adjacentCells = cell.coordonnees.adjacents(self = true)
-    val gridCells = this.cells.filter { it.coordonnees in adjacentCells && it !in alreadySelected }
-    return gridCells
-        .onEach { mutableSelected.add(it) }
-        .filter { it.adjacentBombs == 0 }
-        .flatMap { finAdjacentSelectedCells(it, mutableSelected) }
+private fun Grille.findRecursiveAdjacentCells(cell: Case, selected: MutableList<Pair<Int, Int>>): List<Case> {
+    val adjacents = adjacents(cell, true).filter {
+        it.coordonnees !in selected
+    }.onEach {
+        selected.add(it.coordonnees)
+    }
+    return adjacents + adjacents.flatMap {
+        if (it.adjacentBombs > 0) {
+            emptyList()
+        } else {
+            findRecursiveAdjacentCells(it, selected)
+        }
+    }.distinct()
 }
