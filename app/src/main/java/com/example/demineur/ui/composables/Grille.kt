@@ -1,9 +1,7 @@
-package com.geotec.geologger.presentation.ui.composables
+package com.example.demineur.ui.composables
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,12 +13,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,17 +24,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.demineur.R
 import com.example.demineur.modeles.Case
 import com.example.demineur.modeles.Grille
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private const val GRID_SIZE = 12
-private const val BOMB_COUNT = 15
+private const val GRID_SIZE = 4
+private const val BOMB_COUNT = 1
 
 
 fun generateBaseGrid(firstClickCoordinates: Pair<Int, Int>): Grille {
@@ -118,12 +115,14 @@ fun GrilleUI(modifier: Modifier = Modifier) {
                         grid = generateBaseGrid(it)
                     }
                     coroutineScope.launch {
-                        grid = grid.onCellSelected(it)
+                        onCellSelected(it, grid) {
+                            grid = it
+                        }
                     }
                 }
             }
         }
-        
+
 
     }
 }
@@ -135,17 +134,24 @@ fun Cell(
     onClick: (Pair<Int, Int>) -> Unit
 
 ) {
-//    val test by animateColorAsState(targetValue = Color.Red, animationSpec = tween(durationMillis = 1000))
-    var color by remember { mutableStateOf(Color.LightGray) }
+    val color by animateColorAsState(
+        targetValue = if (case.selected) {
+            if (case.bomb) {
+                Color.Red
+            } else {
+                Color.Blue
+            }
+        } else {
+            Color.LightGray
+        },
+        animationSpec = tween(durationMillis = 1000)
+    )
 
-    LaunchedEffect(Unit) {
-        val x = rememberInfiniteTransition()
-        val colorAnimation = animateColorAsState(
-            targetValue = Color.Red,
-            animationSpec = tween(durationMillis = 3000)
-        )
-        color = colorAnimation.value
-    }
+    val alpha by animateFloatAsState(
+        targetValue = if (case.selected) 1f else 0f,
+        animationSpec = tween(durationMillis = 1000)
+    )
+
     Box(
         modifier
             .border(1.dp, Color.Black)
@@ -154,15 +160,7 @@ fun Cell(
 
             }
             .background(
-                if (case.selected) {
-                    if (case.bomb) {
-                        test
-                    } else {
-                        Color.Blue
-                    }
-                } else {
-                    Color.LightGray
-                }
+                color
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -171,7 +169,7 @@ fun Cell(
                 Icon(painter = painterResource(id = R.drawable.bomb), contentDescription = null)
             } else {
                 if (case.adjacentBombs > 0) {
-                    Text(text = case.adjacentBombs.toString())
+                    Text(modifier = Modifier.alpha(alpha), text = case.adjacentBombs.toString())
                 }
             }
         }
@@ -199,36 +197,47 @@ private fun Grille.adjacents(case: Case, self: Boolean): List<Case> {
     return cells.filter { it.coordonnees in adjacents }
 }
 
-private suspend fun Grille.onCellSelected(clickCoordinates: Pair<Int, Int>): Grille {
-    val cell = this.cells.first { it.coordonnees == clickCoordinates }
-    return if (cell.adjacentBombs == 0) {
-        val selectedCells = findRecursiveAdjacentCells(cell, mutableListOf())
-        val newCells = cells.toMutableList().apply {
-            selectedCells.forEach {
-                val cellIndex = cells.indexOf(it)
+private suspend fun onCellSelected(
+    clickCoordinates: Pair<Int, Int>,
+    grille: Grille,
+    onGridUpdated: (Grille) -> Unit
+) {
+    var currentGrid = grille
+    val cell = grille.cells.first { it.coordonnees == clickCoordinates }
+    if (cell.adjacentBombs == 0) {
+        grille.findRecursiveAdjacentCells(cell, mutableListOf()) {
+            val newGrid = currentGrid.copy(cells = currentGrid.cells.toMutableList().apply {
+                val cellIndex = currentGrid.cells.indexOf(it)
                 set(cellIndex, it.copy(selected = true))
-            }
+            })
+            currentGrid = newGrid
+            onGridUpdated(currentGrid)
         }
-        this.copy(cells = newCells)
+
     } else {
-        val cellIndex = cells.indexOf(cell)
-        this.copy(
-            cells = cells.toMutableList().apply { set(cellIndex, cell.copy(selected = true)) }
+        val cellIndex = grille.cells.indexOf(cell)
+        onGridUpdated(
+            grille.copy(
+                cells = grille.cells.toMutableList()
+                    .apply { set(cellIndex, cell.copy(selected = true)) }
+            )
         )
     }
 }
 
-private fun Grille.findRecursiveAdjacentCells(cell: Case, selected: MutableList<Pair<Int, Int>>): List<Case> {
-    val adjacents = adjacents(cell, true).filter {
+private suspend fun Grille.findRecursiveAdjacentCells(
+    cell: Case,
+    selected: MutableList<Pair<Int, Int>>,
+    onCellSelected: (Case) -> Unit,
+) {
+    adjacents(cell, true).filter {
         it.coordonnees !in selected
-    }.onEach {
+    }.forEach {
         selected.add(it.coordonnees)
-    }
-    return adjacents + adjacents.flatMap {
-        if (it.adjacentBombs > 0) {
-            emptyList()
-        } else {
-            findRecursiveAdjacentCells(it, selected)
+        onCellSelected(it)
+        delay(200)
+        if (it != cell && it.adjacentBombs == 0) {
+            findRecursiveAdjacentCells(it, selected, onCellSelected)
         }
-    }.distinct()
+    }
 }
