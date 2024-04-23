@@ -59,7 +59,7 @@ class MainActivity : ComponentActivity() {
 
 
 private const val GRID_SIZE = 15
-private const val BOMB_COUNT = 30
+private const val BOMB_COUNT = 10
 
 
 fun generateBaseGrid(firstClickCoordinates: Pair<Int, Int>): Grille {
