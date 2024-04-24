@@ -106,10 +106,18 @@ fun Cell(
             easing = FastOutSlowInEasing
         )
     )
-    IndexedValue(value = 21)
 
-    val flagIndex = listOf()
-    val flagAnim by animateIntAsState(targetValue = )
+
+    val flagList = listOf(
+        Icon(painter = painterResource(id = R.drawable.bomb), contentDescription = null),
+        Icon(painter = painterResource(id = R.drawable.bomb), contentDescription = null),
+        Icon(painter = painterResource(id = R.drawable.bomb), contentDescription = null),
+        Icon(painter = painterResource(id = R.drawable.bomb), contentDescription = null),
+        Icon(painter = painterResource(id = R.drawable.bomb), contentDescription = null)
+    )
+    val superNomOriginal = flagList.indexOf()
+    val flagAnim by animateIntAsState(targetValue = superNomOriginal)
+
     Box(
         modifier
             .border(1.dp, Color.Black)
@@ -117,9 +125,7 @@ fun Cell(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
-                        this.awaitRelease() {
-
-                        }
+                        this.awaitRelease()
 
                     },
                     onTap = {
